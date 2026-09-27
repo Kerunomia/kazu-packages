@@ -1,0 +1,6 @@
+KAZUDB1
+hello	2.12.3-1	x86_64	any	any	any	*	*	cc6d1a73d6e158c49c72c3b8145fb393f0fb0584c6882777f8d0307f63dc8e27	86572	hello-2.12.3-1.tar.zst	GNU hello, the canonical friendly greeting program
+lz4	1.10.0-1	x86_64	any	any	any	*	*	bccb9c9239fd3754b08d2af9e51b3e89679b8c95ed5750fe558a25ac728a580a	273292	lz4-1.10.0-1.tar.zst	Extremely fast lossless compression
+xxhash	0.8.4-1	x86_64	any	any	any	*	*	edfafd6b6c6d160f386852b2fa02f705fdbe50c728301122d75d63548b15ba13	152885	xxhash-0.8.4-1.tar.zst	Extremely fast non-cryptographic hash algorithm
+zlib	1.3.2-1	x86_64	any	any	any	*	*	5c7624874d07c4757850d812b9270603c6f37326e1dd24eb24e703574334843b	119890	zlib-1.3.2-1.tar.zst	A compression library used by nearly everything
+zstd	1.5.7-1	x86_64	any	any	any	*	*	0193af3090ea9a1f8c310bd66c962d8728d6a3f2207f86fc9530d6ae697b4370	1119403	zstd-1.5.7-1.tar.zst	Fast real-time compression, the heart of the Kazu package format

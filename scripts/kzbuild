@@ -1,0 +1,99 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+RECIPE="${1:-$PWD/KZBUILD}"
+[ -f "$RECIPE" ] || { echo "kzbuild: recipe not found: $RECIPE" >&2; exit 1; }
+RECIPE="$(cd "$(dirname "$RECIPE")" && pwd)/$(basename "$RECIPE")"
+
+OUTDIR="${OUTDIR:-$REPO_ROOT/x86_64}"
+WORK="${WORKDIR:-$REPO_ROOT/build}"
+srcdir="$WORK/src"
+pkgdir="$WORK/pkg"
+
+log() { printf '\033[1;36m[kzbuild]\033[0m %s\n' "$*"; }
+die() { printf 'kzbuild: error: %s\n' "$*" >&2; exit 1; }
+
+pkgname=""
+pkgver=""
+pkgrel="1"
+pkgdesc=""
+arch="x86_64"
+libc="any"
+init="any"
+kernel="any"
+depends=()
+provides=()
+sources=()
+sha256sums=()
+
+unset -f prepare build package 2>/dev/null || true
+
+. "$RECIPE"
+
+[ -n "$pkgname" ] || die "pkgname is required"
+[ -n "$pkgver" ] || die "pkgver is required"
+[ "${#sources[@]}" -gt 0 ] || die "sources is required"
+
+rm -rf "$srcdir" "$pkgdir"
+mkdir -p "$srcdir" "$pkgdir" "$OUTDIR"
+
+log "fetching $pkgname $pkgver"
+i=0
+for url in "${sources[@]}"; do
+    fname="${url##*/}"
+    case "$fname" in
+        *\?*) fname="${fname%%\?*}" ;;
+    esac
+    curl -fsSL --retry 3 -o "$srcdir/$fname" "$url"
+    want="${sha256sums[$i]:-}"
+    if [ -n "$want" ]; then
+        got="$(sha256sum "$srcdir/$fname" | cut -d' ' -f1)"
+        [ "$got" = "$want" ] || die "checksum mismatch for $fname"
+    fi
+    log "extracting $fname"
+    case "$fname" in
+        *.tar.gz|*.tgz) tar -C "$srcdir" -xzf "$srcdir/$fname" ;;
+        *.tar.xz) tar -C "$srcdir" -xJf "$srcdir/$fname" ;;
+        *.tar.zst) tar -C "$srcdir" --zstd -xf "$srcdir/$fname" ;;
+        *.tar.bz2) tar -C "$srcdir" -xjf "$srcdir/$fname" ;;
+        *.tar) tar -C "$srcdir" -xf "$srcdir/$fname" ;;
+        *) cp -f "$srcdir/$fname" "$srcdir/" ;;
+    esac
+    i=$((i + 1))
+done
+
+if [ "$(type -t prepare)" = "function" ]; then
+    prepare
+fi
+if [ "$(type -t build)" = "function" ]; then
+    build
+else
+    die "recipe has no build()"
+fi
+if [ "$(type -t package)" = "function" ]; then
+    package
+else
+    die "recipe has no package()"
+fi
+
+version="$pkgver-$pkgrel"
+cat > "$pkgdir/.KAZU" <<EOF
+name=$pkgname
+version=$version
+arch=$arch
+libc=$libc
+init=$init
+kernel=$kernel
+depends=${depends[*]}
+provides=${provides[*]}
+desc=$pkgdesc
+EOF
+
+out="$OUTDIR/$pkgname-$version.tar.zst"
+rm -f "$out"
+tar -C "$pkgdir" --owner=0 --group=0 --numeric-owner --zstd -cf "$out" .
+log "built $out"

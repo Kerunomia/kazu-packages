@@ -1,0 +1,41 @@
+#!/bin/bash
+set -e
+
+DIR="${1:-.}"
+OUT="$DIR/index.kazu"
+
+meta_get() {
+    awk -F= -v k="$1" '$1==k {sub(/^[^=]*=/, ""); print; exit}' <<< "$2"
+}
+
+printf 'KAZUDB1\n' > "$OUT"
+count=0
+shopt -s nullglob
+for pkg in "$DIR"/*.tar.zst; do
+    meta="$(tar -I zstd -xOf "$pkg" ./.KAZU 2>/dev/null || true)"
+    [ -n "$meta" ] || continue
+    name="$(meta_get name "$meta")"
+    version="$(meta_get version "$meta")"
+    arch="$(meta_get arch "$meta")"
+    libc="$(meta_get libc "$meta")"
+    init="$(meta_get init "$meta")"
+    kernel="$(meta_get kernel "$meta")"
+    depends="$(meta_get depends "$meta")"
+    provides="$(meta_get provides "$meta")"
+    desc="$(meta_get desc "$meta")"
+    [ -n "$name" ] && [ -n "$version" ] || continue
+    [ -n "$arch" ] || arch='*'
+    [ -n "$libc" ] || libc='*'
+    [ -n "$init" ] || init='*'
+    [ -n "$kernel" ] || kernel='*'
+    [ -n "$depends" ] || depends='*'
+    [ -n "$provides" ] || provides='*'
+    sha="$(sha256sum "$pkg" | cut -d' ' -f1)"
+    size="$(stat -c%s "$pkg")"
+    file="$(basename "$pkg")"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$name" "$version" "$arch" "$libc" "$init" "$kernel" \
+        "$depends" "$provides" "$sha" "$size" "$file" "$desc" >> "$OUT"
+    count=$((count + 1))
+done
+printf 'kazu-mkrepo: indexed %d package(s) into %s\n' "$count" "$OUT"

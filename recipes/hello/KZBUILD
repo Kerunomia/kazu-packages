@@ -1,0 +1,23 @@
+pkgname=hello
+pkgver=2.12.3
+pkgrel=1
+pkgdesc="GNU hello, the canonical friendly greeting program"
+arch=x86_64
+libc=any
+init=any
+kernel=any
+depends=()
+provides=()
+sources=(https://ftp.gnu.org/gnu/hello/hello-2.12.3.tar.gz)
+sha256sums=(0d5f60154382fee10b114a1c34e785d8b1f492073ae2d3a6f7b147687b366aa0)
+
+build() {
+    cd "$srcdir/hello-2.12.3"
+    ./configure --prefix=/usr --disable-nls
+    make MAKEINFO=true
+}
+
+package() {
+    cd "$srcdir/hello-2.12.3"
+    make DESTDIR="$pkgdir" MAKEINFO=true install
+}

@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+shopt -s nullglob
+for recipe in "$REPO_ROOT"/recipes/*/KZBUILD; do
+    "$SCRIPT_DIR/kzbuild" "$recipe"
+done
+"$SCRIPT_DIR/kazu-mkrepo" "$REPO_ROOT/x86_64"
